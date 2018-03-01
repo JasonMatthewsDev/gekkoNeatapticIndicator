@@ -17,7 +17,9 @@ const strat = {
       error: this.settings.error,
       rate: this.settings.learnRate,
       momentum: this.settings.momentum,
-      history: config.tradingAdvisor.historySize
+      history: config.tradingAdvisor.historySize,
+      rsi: this.settings.RSI,
+      sma: this.settings.SMA
     });
 
     this.startTime = new Date();

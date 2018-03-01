@@ -1,5 +1,5 @@
 #NN Settings
-hiddenLayers = 9
+hiddenLayers = 21
 lookAheadCandles = 10
 iterations = 1000
 error = 0.03
@@ -10,3 +10,7 @@ momentum = 0.1
 minPercentIncrease = 3
 candlesForShort = 3
 candlesForLong = 10
+
+#Indicator Settings
+RSI = [14]
+SMA = [10, 50]

@@ -1,5 +1,6 @@
 const neataptic = require('neataptic');
-const _ = require('lodash');
+const RSI = require('./RSI');
+const SMA = require('./SMA');
 
 class Indicator {
   /**
@@ -19,7 +20,6 @@ class Indicator {
   constructor(config) {
     this.input = 'candle';
     this.config = config;
-    this.network = new neataptic.architect.LSTM(7, config.hiddenLayers, this.config.lookAhead);
     this.prediction = 0;
     this.candles = [];
     this.normalizedCandles = [];
@@ -41,6 +41,32 @@ class Indicator {
       momentum: this.config.momentum || 0.1
     };
 
+    this.RSIs = [];
+    this.SMAs = [];
+
+    //Add RSI indicator[s]
+    if (Array.isArray(this.config.rsi)) {
+      for (let i = 0, iLen = this.config.rsi.length; i < iLen; i++) {
+        if (parseInt(this.config.rsi[i])) {
+          this.RSIs.push(new RSI({
+            interval: this.config.rsi[i]
+          }));
+        }
+      }
+    }
+
+    //Add SMA indicator[s]
+    if (Array.isArray(this.config.sma)) {
+      for (let i = 0, iLen = this.config.sma.length; i < iLen; i++) {
+        if (parseInt(this.config.sma[i])) {
+          this.SMAs.push(new SMA(this.config.sma[i]));
+        }
+      }
+    }
+
+    let inputs = 7 + this.RSIs.length + this.SMAs.length;
+    this.network = new neataptic.architect.LSTM(inputs, config.hiddenLayers, this.config.lookAhead);
+    
     //annoying but necessary
     this.calcNormalizedCandles = this.calcNormalizedCandles.bind(this);
   }
@@ -128,11 +154,23 @@ class Indicator {
     ret.push(candle.vwp / dividers.vwp);
     ret.push(candle.trades / dividers.trades);
 
+    for (let i = 0, iLen = candle.RSIs.length; i < iLen; i++) {
+      ret.push(candle.RSIs[i] / 100);
+    }
+
+    for (let i = 0, iLen = candle.SMAs.length; i < iLen; i++) {
+      ret.push(candle.SMAs[i] / dividers.high);
+    }
+
     return ret;
   }
 
   /**
-   * Sets orders of magnitude for data normalization and calculates normalized candles
+   * Takes in a new candle and figures out if the order of magnitudes for any of the previous candles used for data
+   * normalization should change. If yes, recalculates all normalized data with new orders of magnitude.
+   * If no, calculates the normalized data for the new candle and adds it to the array
+   * 
+   * @param {object} newCandle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
    */
   normalizeAll() {
     this.setOrders();
@@ -184,13 +222,26 @@ class Indicator {
    */
   update(candle) {
     const newCandle = Object.assign({}, candle);
+
+    newCandle.RSIs = [];
+    for (let i = 0, iLen = this.RSIs.length; i < iLen; i++) {
+      this.RSIs[i].update(candle);
+      newCandle.RSIs.push(this.RSIs[i].result);
+    }
+
+    newCandle.SMAs = [];
+    for (let i = 0, iLen = this.SMAs.length; i < iLen; i++) {
+      this.SMAs[i].update(candle.close);
+      newCandle.SMAs.push(this.SMAs[i].result);
+    }
+
     this.candles.push(newCandle);
 
     if (this.candles.length === this.config.history) {
       this.normalizeAll();
       this.learn();
     } else {
-      this.normalizedCandles.push(this.normalizeCandle(candle));
+      this.normalizedCandles.push(this.normalizeCandle(newCandle));
       if (this.candles.length > this.config.history && parseInt(this.config.lookAhead) && this.normalizedCandles.length > this.config.lookAhead) {
         this.learn();
         this.predict(newCandle);
