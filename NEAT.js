@@ -132,11 +132,7 @@ class Indicator {
   }
 
   /**
-   * Takes in a new candle and figures out if the order of magnitudes for any of the previous candles used for data
-   * normalization should change. If yes, recalculates all normalized data with new orders of magnitude.
-   * If no, calculates the normalized data for the new candle and adds it to the array
-   * 
-   * @param {object} newCandle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
+   * Sets orders of magnitude for data normalization and calculates normalized candles
    */
   normalizeAll() {
     this.setOrders();
