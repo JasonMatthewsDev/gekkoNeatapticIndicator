@@ -6,6 +6,9 @@ error = 0.0001
 learnRate = 0.05
 momentum = 0.1
 
+#Can be LSTM or Perceptron
+architecture = "LSTM"
+
 #Strat Settings
 minPercentIncrease = 2
 candlesForShort = [6]

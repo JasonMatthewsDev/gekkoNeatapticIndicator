@@ -20,7 +20,8 @@ const strat = {
       momentum: this.settings.momentum,
       history: config.tradingAdvisor.historySize,
       rsi: this.settings.RSI,
-      sma: this.settings.SMA
+      sma: this.settings.SMA,
+      architecture: this.settings.architecture
     });
 
     this.position = 'none';

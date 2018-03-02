@@ -40,8 +40,7 @@ class Indicator {
       momentum: this.config.momentum || 0.1,
       ratePolicy: neataptic.methods.rate.STEP(),
       dropout: 0.01,
-      crossValidate:
-      {
+      crossValidate: {
         testSize: 0.2,
         testError: 0.001
       }
@@ -79,9 +78,12 @@ class Indicator {
     }
     layers.push(config.lookAhead);
 
-    this.network = new neataptic.architect.LSTM(...layers);
-    //this.network = new neataptic.architect.Perceptron(...layers);
-    
+    if (config.architecture === "LSTM") {
+      this.network = new neataptic.architect.LSTM(...layers);
+    } else {
+      this.network = new neataptic.architect.Perceptron(...layers);
+    }
+
     //annoying but necessary
     this.calcNormalizedCandles = this.calcNormalizedCandles.bind(this);
   }
