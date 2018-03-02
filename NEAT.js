@@ -29,7 +29,6 @@ class Indicator {
       close: 0,
       open: 0,
       volume: 0,
-      vwp: 0,
       trades: 0
     };
 
@@ -38,7 +37,14 @@ class Indicator {
       iterations: this.config.iterations || 1000,
       error: this.config.error || 0.03,
       rate: this.config.rate || 0.01,
-      momentum: this.config.momentum || 0.1
+      momentum: this.config.momentum || 0.1,
+      ratePolicy: neataptic.methods.rate.STEP(),
+      dropout: 0.01,
+      crossValidate:
+      {
+        testSize: 0.2,
+        testError: 0.001
+      }
     };
 
     this.RSIs = [];
@@ -64,8 +70,17 @@ class Indicator {
       }
     }
 
-    let inputs = 7 + this.RSIs.length + this.SMAs.length;
-    this.network = new neataptic.architect.LSTM(inputs, config.hiddenLayers, this.config.lookAhead);
+    let inputs = 6 + this.RSIs.length + this.SMAs.length;
+    let neuronsPerHL = Math.ceil(inputs + config.lookAhead / 2) + 5;
+    const layers = [inputs];
+
+    for (let i = 0; i < config.hiddenLayers; i++) {
+      layers.push(neuronsPerHL);
+    }
+    layers.push(config.lookAhead);
+
+    this.network = new neataptic.architect.LSTM(...layers);
+    //this.network = new neataptic.architect.Perceptron(...layers);
     
     //annoying but necessary
     this.calcNormalizedCandles = this.calcNormalizedCandles.bind(this);
@@ -118,7 +133,6 @@ class Indicator {
       close: Math.pow(10, this.maxOrders.close + 1),
       open: Math.pow(10, this.maxOrders.open + 1),
       volume: Math.pow(10, this.maxOrders.volume + 1),
-      vwp: Math.pow(10, this.maxOrders.vwp + 1),
       trades: Math.pow(10, this.maxOrders.trades + 1)
     }
   }
@@ -137,8 +151,8 @@ class Indicator {
   /**
    * Calculates normalized inputs for a single candle
    * 
-   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
-   * @param {object} dividers - Dividers used for normalizing. Must have {high, low, close, open, volume, vwp, trades}\
+   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, trades}
+   * @param {object} dividers - Dividers used for normalizing. Must have {high, low, close, open, volume, trades}
    * @returns {object}
    */
   normalizeCandle(candle, dividers = undefined) {
@@ -151,7 +165,6 @@ class Indicator {
     ret.push(candle.close / dividers.close);
     ret.push(candle.open / dividers.open);
     ret.push(candle.volume / dividers.volume);
-    ret.push(candle.vwp / dividers.vwp);
     ret.push(candle.trades / dividers.trades);
 
     for (let i = 0, iLen = candle.RSIs.length; i < iLen; i++) {
@@ -170,7 +183,7 @@ class Indicator {
    * normalization should change. If yes, recalculates all normalized data with new orders of magnitude.
    * If no, calculates the normalized data for the new candle and adds it to the array
    * 
-   * @param {object} newCandle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
+   * @param {object} newCandle - Candle data. Must have {high, low, close, open, volume, trades}
    */
   normalizeAll() {
     this.setOrders();
@@ -180,7 +193,7 @@ class Indicator {
   /**
    * Changes the orders of magnitude for any of the values that should be changed
    * 
-   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
+   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, trades}
    * @returns {bool} - True if orders of magnitude changed
    */
   setOrders() {
@@ -191,7 +204,6 @@ class Indicator {
         close: this.getOrder(this.candles[i].close),
         open: this.getOrder(this.candles[i].open),
         volume: this.getOrder(this.candles[i].volume),
-        vwp: this.getOrder(this.candles[i].vwp),
         trades: this.getOrder(this.candles[i].trades)
       };
 
@@ -200,7 +212,6 @@ class Indicator {
       this.maxOrders.close = candleOrders.close > this.maxOrders.close ? candleOrders.close : this.maxOrders.close;
       this.maxOrders.open = candleOrders.open > this.maxOrders.open ? candleOrders.open : this.maxOrders.open;
       this.maxOrders.volume = candleOrders.volume > this.maxOrders.volume ? candleOrders.volume : this.maxOrders.volume;
-      this.maxOrders.vwp = candleOrders.vwp > this.maxOrders.vwp ? candleOrders.vwp : this.maxOrders.vwp;
       this.maxOrders.trades = candleOrders.trades > this.maxOrders.trades ? candleOrders.trades : this.maxOrders.trades;
     }
   }
@@ -218,7 +229,7 @@ class Indicator {
   /**
    * Update function run on every new candle
    * 
-   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, vwp, trades}
+   * @param {object} candle - Candle data. Must have {high, low, close, open, volume, trades}
    */
   update(candle) {
     const newCandle = Object.assign({}, candle);

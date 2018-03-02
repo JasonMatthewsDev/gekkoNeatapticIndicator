@@ -1,16 +1,17 @@
 #NN Settings
-hiddenLayers = 21
-lookAheadCandles = 10
-iterations = 1000
-error = 0.03
-learnRate = 0.01
+hiddenLayers = 3
+lookAheadCandles = 6
+iterations = 100
+error = 0.0001
+learnRate = 0.05
 momentum = 0.1
 
 #Strat Settings
-minPercentIncrease = 3
-candlesForShort = 3
-candlesForLong = 10
+minPercentIncrease = 2
+candlesForShort = [6]
+candlesForLong = [6]
+stopLoss = 3
 
 #Indicator Settings
 RSI = [14]
-SMA = [10, 50]
+SMA = [50, 1000]
