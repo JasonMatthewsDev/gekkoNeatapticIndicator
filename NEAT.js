@@ -24,12 +24,12 @@ class Indicator {
     this.candles = [];
     this.normalizedCandles = [];
     this.maxOrders = {
-      high: 0,
-      low: 0,
-      close: 0,
-      open: 0,
-      volume: 0,
-      trades: 0
+      high: Number.NEGATIVE_INFINITY,
+      low: Number.NEGATIVE_INFINITY,
+      close: Number.NEGATIVE_INFINITY,
+      open: Number.NEGATIVE_INFINITY,
+      volume: Number.NEGATIVE_INFINITY,
+      trades: Number.NEGATIVE_INFINITY
     };
 
     this.trainConfig = {
